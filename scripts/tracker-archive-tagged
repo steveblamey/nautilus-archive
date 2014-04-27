@@ -1,0 +1,48 @@
+#!/usr/bin/python
+
+import gi
+from gi.repository import GObject, Gio
+from trackertag import TrackerTag
+import os
+import datetime
+
+tracker = TrackerTag()
+tag = "archive"
+
+
+def archive_uri_join(*args):
+    archive_folder = Gio.file_new_for_path(os.path.join(os.getenv("HOME"), "Archive"))
+    segments = (archive_folder.get_uri(),) + (args)
+    return "/".join(map(str, segments))
+
+file_uris = tracker.tagged_files(tag)
+if file_uris:
+    errors = []
+    for f in file_uris:
+        try:
+            source_file = Gio.file_new_for_uri(f)
+            target_file = Gio.file_new_for_uri(archive_uri_join(source_file.get_basename()))
+            if target_file.query_exists(None):
+                now = datetime.datetime.now()
+                archive_folder_name = now.strftime("%x").replace("/", "-")
+                archive_folder = Gio.file_new_for_uri(archive_uri_join(archive_folder_name))
+                if not archive_folder.query_exists(None):
+                    archive_folder.make_directory(None)
+                target_file = Gio.file_new_for_uri(archive_uri_join(archive_folder_name, source_file.get_basename()))
+            tag_removed = tracker.remove_tag(f, tag)
+            if tag_removed:
+                source_file.move(target_file, Gio.FileCopyFlags.NONE, None, None, None)
+            else:
+                raise Exception("Unable to remove tag for %s" % f)
+            print("Archived: %s" % f)
+
+        except:
+            tracker.add_tag(f, tag)
+            errors.append(f)
+
+    if errors:
+        print("Failed to archive %s files:" % len(errors))
+        for uri in errors:
+            print(uri)
+else:
+    print("Nothing to archive.")
