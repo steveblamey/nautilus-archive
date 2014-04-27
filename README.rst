@@ -4,9 +4,7 @@ Nautilus Archive Extension
 Installation
 ------------
 
-Download and uncompress tarball. For installation use a setup.py script::
-
-       $ sudo ./setup.py install
+    $ sudo ./setup.py install
 
 Restart Nautilus::
 
@@ -37,9 +35,6 @@ gir1.2-tracker (dependecy of libtracker-sparql-dev)
 Meta
 ----
 
-- Author: Steve Blamey <steve@steveblamey.co.uk>
+- Author: Steve Blamey <me@steveblamey.co.uk>
 - License: GNU GPL v3
 - Version: 0.1
-
-.. _nautilus-archive: http://www.steveblamey.co.uk/nautilus-archive
-
