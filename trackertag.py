@@ -1,6 +1,8 @@
 """A simple wrapper for Tracker SPARQL queries and updates related to file tagging.
 """
 import gi
+gi.require_version('Tracker', '1.0')
+
 from gi.repository import Tracker
 
 
