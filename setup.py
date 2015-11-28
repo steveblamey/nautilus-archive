@@ -26,7 +26,7 @@ extension = [
 ]
 
 setup(name='nautilus-archive',
-      version='0.1',
+      version='0.2',
       description='A file archiving extension for the Nautilus file manager',
       long_description=open('README.rst').read(),
       author='Steve Blamey',
