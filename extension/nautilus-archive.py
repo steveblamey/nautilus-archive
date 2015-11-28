@@ -19,6 +19,8 @@
 #
 
 import gi
+gi.require_version('Nautilus', '3.0')
+
 from gi.repository import Nautilus, GObject, Gtk, Gdk, Gio
 from trackertag import TrackerTag
 import os
@@ -30,14 +32,17 @@ class ColumnExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvi
         self.tracker = TrackerTag()
         self.archive_folder = Gio.file_new_for_path(os.path.join(os.getenv("HOME"), "Archive"))
         self.tag_settings = {
-            'archive': ('emblem-green-tag', self.archive_folder.get_uri()),
-            'test': ('emblem-red-tag', self.archive_uri_join('Work')),
-            'project': ('emblem-generic', self.archive_uri_join('Project')),
+            'archive': ('emblem-package', self.archive_folder.get_uri()),
+            'test': ('emblem-generic', self.archive_uri_join('Work')),
+            #'project': ('emblem-generic', self.archive_uri_join('Project')),
         }
         
         #create Archive folder
         if not self.archive_folder.query_exists(None):
             self.archive_folder.make_directory(None)
+
+        # set folder icon
+        self.archive_folder.set_attribute_string("metadata::custom-icon-name", 'folder-documents', Gio.FileQueryInfoFlags.NONE, None)
 
         #create sub-folders and tracker tags
         for tag, settings in self.tag_settings.items():
@@ -52,31 +57,6 @@ class ColumnExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvi
         return "/".join(map(str, segments))
 
     def get_widget(self, uri, window):
-        style_provider = Gtk.CssProvider()
-
-        css = """
-        #archive-bar-label {
-            color: #FFF;
-            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); }
-        #archive-bar-label-off {
-            color: #000;
-        }
-        #archive-bar #archive-button{
-            border: 1px solid #5378a2;
-        }
-        #archive-bar #archive-button-off{
-            border: 1px solid #bcbcbc;
-        }
-        """
-
-        style_provider.load_from_data(css)
-
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(), 
-            style_provider,     
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
-        
         #Only show archive bar in the Archive directory
         if uri == self.archive_folder.get_uri():
             
@@ -92,10 +72,7 @@ class ColumnExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvi
             
             main_glabel = Gtk.Label()
             main_glabel.set_markup('<b>Archive</b>')
-            main_glabel.set_name('archive-bar-label')
-            main_label = Gtk.Alignment()
-            main_label.set_padding(0, 0 ,8, 0)
-            main_label.add(main_glabel)
+            main_glabel.set_name('archive-label')
             
             archive_gbutton = Gtk.Button(button_msg)
             archive_gbutton.set_name('archive-button')
@@ -105,21 +82,16 @@ class ColumnExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvi
                 archive_gbutton.set_sensitive(False)
             archive_gbutton.connect("clicked", self.on_archive_gbutton_clicked, window)
             archive_gbutton.set_relief(Gtk.ReliefStyle.HALF)
-            archive_button = Gtk.Alignment()
-            archive_button.set_padding(6, 7 ,0, 7)
+            archive_button = Gtk.ButtonBox()
+            archive_button.set_border_width(6)
             archive_button.add(archive_gbutton)
             
-            archive_bar.pack_start(main_label, False, False, 0)
             archive_bar.pack_end(archive_button, False, False, 0)
             
-            background_box = Gtk.EventBox()
-            if not tagged_uris:
-                background_box.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(0.920,0.920,0.920,1))
-                main_glabel.set_name('archive-bar-label-off')
-                archive_gbutton.set_name('archive-button-off')
-            else:
-                background_box.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(0.541,0.678,0.831,1))
+            background_box = Gtk.InfoBar()
             background_box.add(archive_bar)
+            background_box_content = background_box.get_content_area()
+            background_box_content.add(main_glabel)
             background_box.show_all()
             return background_box
         else:
@@ -181,6 +153,8 @@ class ColumnExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvi
         file.invalidate_extension_info()
         Nautilus.info_provider_update_complete_invoke(closure, provider, handle, Nautilus.OperationResult.COMPLETE)
         return False
+        #return Nautilus.OperationResult.COMPLETE
+
 
     def tag_file_cb(self, menu, file, tag):
         for f in file:
@@ -203,6 +177,7 @@ class ColumnExtension(GObject.GObject, Nautilus.MenuProvider, Nautilus.InfoProvi
         # Show the menu if there is at least one file selected
         if len(files) == 0:
             return
+
 
         for fd in files:
             # Only for local files
